@@ -361,7 +361,7 @@
     window.onclick = (e) => { if (e.target === modal) modal.style.display = 'none'; };
 
 saveBtn.onclick = () => {
-    console.log("Кнопка нажата");
+    console.log("Кнопка сохранения нажата");
     if (!isAuthorized) {
         alert("Нет прав");
         return;
@@ -375,14 +375,30 @@ saveBtn.onclick = () => {
         return;
     }
     const center = map.getCenter();
+    // Создаём объект только с обязательными полями
     const newAnimal = {
-        name: name || undefined,
         species: species,
-        note: note || undefined,
         lat: center.lat,
         lng: center.lng,
         createdAt: Date.now()
     };
+    // Добавляем имя и заметку только если они не пустые
+    if (name) newAnimal.name = name;
+    if (note) newAnimal.note = note;
+    console.log("Отправка в Firebase:", newAnimal);
+    animalsRef.push(newAnimal)
+        .then(() => {
+            modal.style.display = 'none';
+            nameInput.value = '';
+            speciesInput.value = '';
+            noteInput.value = '';
+            console.log("Животное успешно добавлено");
+        })
+        .catch(err => {
+            alert("Ошибка добавления: " + err.message);
+            console.error("Ошибка Firebase:", err);
+        });
+};
     console.log("Отправляем в Firebase:", newAnimal);
     animalsRef.push(newAnimal)
         .then(() => {
