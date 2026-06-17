@@ -249,7 +249,7 @@
             const newPos = marker.getLatLng();
             animalsRef.child(id).update({ lat: newPos.lat, lng: newPos.lng });
         });
-        marker.animalData = animal;   // сохраняем данные
+        marker.animalData = animal;
         markersMap.set(id, marker);
     }
 
@@ -267,16 +267,16 @@
         document.querySelectorAll('.delete-animal-btn').forEach(btn => {
             if (btn.dataset.listener) return;
             btn.dataset.listener = 'true';
-            btn.addEventListener('click', (e) => {
+            btn.addEventListener('click', function(e) {
                 e.stopPropagation();
                 if (!isAuthorized) return alert("Доступ только для сотрудников");
-                const id = btn.dataset.id;
+                const id = this.dataset.id;
                 if (id && confirm('Убрать животное с карты?')) animalsRef.child(id).remove();
             });
         });
     }
 
-    // ========== УПРАВЛЕНИЕ ДОСТУПАМИ (ИСПРАВЛЕНО) ==========
+    // ========== УПРАВЛЕНИЕ ДОСТУПАМИ ==========
     function setAuthorization(authorized) {
         isAuthorized = authorized;
         const addBtn = document.getElementById('addAnimalBtn');
@@ -285,9 +285,8 @@
             addBtn.style.display = 'block';
             statusDiv.innerHTML = '✅ Сотрудник (полный доступ)';
             statusDiv.className = 'status authorized';
-            markersMap.forEach(marker => {
+            markersMap.forEach(function(marker) {
                 marker.dragging.enable();
-                // Используем сохранённый вид животного
                 const species = marker.animalData?.species || '';
                 marker.setIcon(getAnimalIcon(species));
                 marker.setPopupContent(createPopupContent(marker.animalData || {}));
@@ -296,7 +295,7 @@
             addBtn.style.display = 'none';
             statusDiv.innerHTML = '👀 Только просмотр';
             statusDiv.className = 'status';
-            markersMap.forEach(marker => {
+            markersMap.forEach(function(marker) {
                 marker.dragging.disable();
                 const species = marker.animalData?.species || '';
                 marker.setIcon(getAnimalIcon(species));
@@ -307,19 +306,21 @@
     }
 
     // ========== СЛУШАТЕЛИ FIREBASE ==========
-    animalsRef.on('child_added', (snapshot) => {
+    animalsRef.on('child_added', function(snapshot) {
         const animal = snapshot.val();
         animal.id = snapshot.key;
         updateOrCreateMarker(animal);
         setTimeout(attachPopupEvents, 100);
     });
-    animalsRef.on('child_changed', (snapshot) => {
+
+    animalsRef.on('child_changed', function(snapshot) {
         const animal = snapshot.val();
         animal.id = snapshot.key;
         updateOrCreateMarker(animal);
         setTimeout(attachPopupEvents, 100);
     });
-    animalsRef.on('child_removed', (snapshot) => {
+
+    animalsRef.on('child_removed', function(snapshot) {
         const id = snapshot.key;
         if (markersMap.has(id)) {
             map.removeLayer(markersMap.get(id));
@@ -328,7 +329,7 @@
     });
 
     // ========== АВТОРИЗАЦИЯ ==========
-    document.getElementById('loginBtn').onclick = () => {
+    document.getElementById('loginBtn').onclick = function() {
         const pwd = document.getElementById('passwordInput').value;
         if (pwd === CORRECT_PASSWORD) {
             setAuthorization(true);
@@ -340,82 +341,73 @@
     };
     setAuthorization(false); // начальное состояние
 
-    // ========== ДОБАВЛЕНИЕ ЖИВОТНОГО (ИСПРАВЛЕНО) ==========
-    const modal = document.getElementById('animalModal');
-    const addBtn = document.getElementById('addAnimalBtn');
-    const closeModal = document.getElementById('closeModalBtn');
-    const saveBtn = document.getElementById('saveAnimalBtn');
-    const nameInput = document.getElementById('animalName');
-    const speciesInput = document.getElementById('animalSpecies');
-    const noteInput = document.getElementById('animalNote');
+    // ========== ДОБАВЛЕНИЕ ЖИВОТНОГО ==========
+    var modal = document.getElementById('animalModal');
+    var addBtn = document.getElementById('addAnimalBtn');
+    var closeModal = document.getElementById('closeModalBtn');
+    var saveBtn = document.getElementById('saveAnimalBtn');
+    var nameInput = document.getElementById('animalName');
+    var speciesInput = document.getElementById('animalSpecies');
+    var noteInput = document.getElementById('animalNote');
 
-    addBtn.onclick = () => {
+    addBtn.onclick = function() {
         if (isAuthorized) {
             modal.style.display = 'flex';
             nameInput.value = '';
             speciesInput.value = '';
             noteInput.value = '';
-        } else alert("Только для сотрудников");
+        } else {
+            alert("Только для сотрудников");
+        }
     };
-    closeModal.onclick = () => { modal.style.display = 'none'; };
-    window.onclick = (e) => { if (e.target === modal) modal.style.display = 'none'; };
 
-saveBtn.onclick = () => {
-    console.log("Кнопка сохранения нажата");
-    if (!isAuthorized) {
-        alert("Нет прав");
-        return;
-    }
-    const name = nameInput.value.trim();
-    const species = speciesInput.value.trim();
-    const note = noteInput.value.trim();
-    console.log("Имя:", name, "Вид:", species, "Заметка:", note);
-    if (!species) {
-        alert("Пожалуйста, укажите вид животного");
-        return;
-    }
-    const center = map.getCenter();
-    // Создаём объект только с обязательными полями
-    const newAnimal = {
-        species: species,
-        lat: center.lat,
-        lng: center.lng,
-        createdAt: Date.now()
+    closeModal.onclick = function() {
+        modal.style.display = 'none';
     };
-    // Добавляем имя и заметку только если они не пустые
-    if (name) newAnimal.name = name;
-    if (note) newAnimal.note = note;
-    console.log("Отправка в Firebase:", newAnimal);
-    animalsRef.push(newAnimal)
-        .then(() => {
-            modal.style.display = 'none';
-            nameInput.value = '';
-            speciesInput.value = '';
-            noteInput.value = '';
-            console.log("Животное успешно добавлено");
-        })
-        .catch(err => {
-            alert("Ошибка добавления: " + err.message);
-            console.error("Ошибка Firebase:", err);
-        });
-};
-    console.log("Отправляем в Firebase:", newAnimal);
-    animalsRef.push(newAnimal)
-        .then(() => {
-            modal.style.display = 'none';
-            nameInput.value = '';
-            speciesInput.value = '';
-            noteInput.value = '';
-            console.log("Успешно добавлено");
-        })
-        .catch(err => {
-            alert("Ошибка добавления: " + err.message);
-            console.error("Ошибка:", err);
-        });
-};
 
-    // Периодическое обновление кнопок удаления
-    setInterval(() => attachPopupEvents(), 1000);
+    window.onclick = function(e) {
+        if (e.target === modal) modal.style.display = 'none';
+    };
+
+    saveBtn.onclick = function() {
+        console.log("Кнопка сохранения нажата");
+        if (!isAuthorized) {
+            alert("Нет прав");
+            return;
+        }
+        var name = nameInput.value.trim();
+        var species = speciesInput.value.trim();
+        var note = noteInput.value.trim();
+        console.log("Имя:", name, "Вид:", species, "Заметка:", note);
+        if (!species) {
+            alert("Пожалуйста, укажите вид животного");
+            return;
+        }
+        var center = map.getCenter();
+        var newAnimal = {
+            species: species,
+            lat: center.lat,
+            lng: center.lng,
+            createdAt: Date.now()
+        };
+        if (name) newAnimal.name = name;
+        if (note) newAnimal.note = note;
+        console.log("Отправка в Firebase:", newAnimal);
+        animalsRef.push(newAnimal)
+            .then(function() {
+                modal.style.display = 'none';
+                nameInput.value = '';
+                speciesInput.value = '';
+                noteInput.value = '';
+                console.log("Животное успешно добавлено");
+            })
+            .catch(function(err) {
+                alert("Ошибка добавления: " + err.message);
+                console.error("Ошибка Firebase:", err);
+            });
+    };
+
+    setInterval(attachPopupEvents, 1000);
     console.log("Приложение запущено. Ожидание авторизации.");
 </script>
 </body>
