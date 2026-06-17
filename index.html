@@ -360,33 +360,43 @@
     closeModal.onclick = () => { modal.style.display = 'none'; };
     window.onclick = (e) => { if (e.target === modal) modal.style.display = 'none'; };
 
-    saveBtn.onclick = () => {
-        if (!isAuthorized) return alert("Нет прав");
-        const name = nameInput.value.trim();
-        const species = speciesInput.value.trim();
-        const note = noteInput.value.trim();
-        if (!species) {
-            alert("Пожалуйста, укажите вид животного");
-            return;
-        }
-        const center = map.getCenter();
-        const newAnimal = {
-            name: name || undefined,
-            species: species,
-            note: note || undefined,
-            lat: center.lat,
-            lng: center.lng,
-            createdAt: Date.now()
-        };
-        animalsRef.push(newAnimal)
-            .then(() => {
-                modal.style.display = 'none';
-                nameInput.value = '';
-                speciesInput.value = '';
-                noteInput.value = '';
-            })
-            .catch(err => alert("Ошибка добавления: " + err.message));
+saveBtn.onclick = () => {
+    console.log("Кнопка нажата");
+    if (!isAuthorized) {
+        alert("Нет прав");
+        return;
+    }
+    const name = nameInput.value.trim();
+    const species = speciesInput.value.trim();
+    const note = noteInput.value.trim();
+    console.log("Имя:", name, "Вид:", species, "Заметка:", note);
+    if (!species) {
+        alert("Пожалуйста, укажите вид животного");
+        return;
+    }
+    const center = map.getCenter();
+    const newAnimal = {
+        name: name || undefined,
+        species: species,
+        note: note || undefined,
+        lat: center.lat,
+        lng: center.lng,
+        createdAt: Date.now()
     };
+    console.log("Отправляем в Firebase:", newAnimal);
+    animalsRef.push(newAnimal)
+        .then(() => {
+            modal.style.display = 'none';
+            nameInput.value = '';
+            speciesInput.value = '';
+            noteInput.value = '';
+            console.log("Успешно добавлено");
+        })
+        .catch(err => {
+            alert("Ошибка добавления: " + err.message);
+            console.error("Ошибка:", err);
+        });
+};
 
     // Периодическое обновление кнопок удаления
     setInterval(() => attachPopupEvents(), 1000);
