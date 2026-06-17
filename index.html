@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-    <title>Карта зоопарка – реальное время</title>
+    <title>Карта животных – Роев ручей</title>
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
@@ -23,21 +23,12 @@
             z-index: 2;
             justify-content: space-between;
         }
-        .left-controls { display: flex; gap: 12px; align-items: center; flex-wrap: wrap; }
-        .auth-area { background: #e9ecef; border-radius: 30px; padding: 4px 12px; display: flex; gap: 8px; align-items: center; }
-        .auth-area input { padding: 6px 12px; border-radius: 20px; border: 1px solid #ccc; outline: none; }
-        .auth-area button { background: #2c7a47; padding: 6px 14px; margin: 0; }
-        button {
-            background: #2c7a47;
-            color: white;
-            border: none;
-            padding: 8px 16px;
-            border-radius: 30px;
-            cursor: pointer;
-            font-weight: bold;
-            transition: 0.2s;
+        .left-controls {
+            display: flex;
+            gap: 12px;
+            align-items: center;
+            flex-wrap: wrap;
         }
-        button:hover { background: #1e5a36; transform: scale(1.02); }
         .info {
             background: #f0f2f5;
             border-radius: 20px;
@@ -45,93 +36,48 @@
             font-size: 14px;
             color: #1e466e;
         }
-        .modal {
-            display: none;
-            position: fixed;
-            top: 0; left: 0; width: 100%; height: 100%;
-            background: rgba(0,0,0,0.5);
-            align-items: center;
-            justify-content: center;
-            z-index: 1000;
+        .animal-marker div {
+            font-size: 28px;
+            text-shadow: 0 0 0 #fff, 0 0 0 #fff, 0 0 0 #fff, 0 0 0 #fff,
+                         0 0 4px rgba(0,0,0,0.6), 0 0 4px rgba(0,0,0,0.6),
+                         0 0 4px rgba(0,0,0,0.6), 0 0 4px rgba(0,0,0,0.6);
+            cursor: default;
+            text-align: center;
+            filter: drop-shadow(0 2px 4px rgba(0,0,0,0.4));
+            line-height: 1;
         }
-        .modal-card {
-            background: white;
-            padding: 24px;
-            border-radius: 24px;
-            width: 350px;
-            max-width: 95%;
-            box-shadow: 0 8px 20px rgba(0,0,0,0.2);
+        .animal-marker {
+            background: none !important;
+            border: none !important;
         }
-        .modal-card input, .modal-card select, .modal-card textarea {
-            width: 100%;
-            margin: 8px 0;
-            padding: 8px;
-            border-radius: 12px;
-            border: 1px solid #ccc;
-            font-family: inherit;
-        }
-        .modal-card textarea {
-            resize: vertical;
-            min-height: 60px;
-        }
-        .modal-card button {
-            width: 100%;
-            margin-top: 8px;
-        }
-        .status {
+        .nav-link {
+            background: #6c757d;
+            color: white;
+            border: none;
+            padding: 8px 16px;
+            border-radius: 30px;
+            cursor: pointer;
+            font-weight: bold;
+            text-decoration: none;
+            transition: 0.2s;
             font-size: 14px;
-            background: #f8d7da;
-            padding: 4px 12px;
-            border-radius: 20px;
-            color: #721c24;
         }
-        .status.authorized {
-            background: #d4edda;
-            color: #155724;
-        }
+        .nav-link:hover { background: #5a6268; }
     </style>
 </head>
 <body>
 <div class="controls">
     <div class="left-controls">
-        <button id="addAnimalBtn" style="display: none;">➕ Добавить животное</button>
-        <div class="info">🐘 Перетаскивайте маркеры — все сотрудники видят изменения</div>
-        <div class="info">🔄 Режим реального времени</div>
-    </div>
-    <div class="auth-area">
-        <input type="password" id="passwordInput" placeholder="Пароль сотрудника">
-        <button id="loginBtn">🔑 Войти</button>
-        <div id="authStatus" class="status">👀 Только просмотр</div>
+        <div class="info">🐘 Только просмотр животных</div>
+        <div class="info">🔄 Данные в реальном времени</div>
+        <a href="quest_map.html" class="nav-link">📍 Карта квестов</a>
+        <!-- Ссылка на общую карту УДАЛЕНА -->
     </div>
 </div>
 <div id="map"></div>
 
-<!-- Модальное окно для добавления животного -->
-<div id="animalModal" class="modal">
-    <div class="modal-card">
-        <h3>Новый обитатель</h3>
-        <input type="text" id="animalName" list="nameOptions" placeholder="Имя (необязательно)" autocomplete="off">
-        <datalist id="nameOptions">
-            <option>Бонифаций</option><option>Марфа</option><option>Гоша</option>
-            <option>Симба</option><option>Кеша</option><option>Джамбо</option>
-            <option>Рокки</option><option>Люся</option><option>Зевс</option>
-            <option>Ариэль</option><option>Тиша</option><option>Найда</option>
-        </datalist>
-        <input type="text" id="animalSpecies" list="speciesOptions" placeholder="Вид животного *" autocomplete="off" required>
-        <datalist id="speciesOptions">
-            <option>Лев</option><option>Тигр</option><option>Слон</option>
-            <option>Жираф</option><option>Пингвин</option><option>Медведь</option>
-            <option>Обезьяна</option><option>Зебра</option><option>Волк</option>
-            <option>Лиса</option><option>Крокодил</option><option>Фламинго</option>
-        </datalist>
-        <textarea id="animalNote" placeholder="Краткая информация (необязательно)"></textarea>
-        <button id="saveAnimalBtn">✨ Создать на карте</button>
-        <button id="closeModalBtn" style="background:#aaa;">Отмена</button>
-    </div>
-</div>
-
 <script>
-    // ========== НАСТРОЙКИ FIREBASE (ЗАМЕНИТЕ НА СВОИ) ==========
+    // ========== НАСТРОЙКИ FIREBASE ==========
     const firebaseConfig = {
         apiKey: "AIzaSyDummyExample_DoNotCopy",
         authDomain: "zoo-map-realtime.firebaseapp.com",
@@ -146,7 +92,7 @@
     const db = firebase.database();
     const animalsRef = db.ref('animals');
 
-    // ========== КАРТА СО СХЕМОЙ ==========
+    // ========== КАРТА ==========
     const zooMapImageUrl = 'zoo_map.png';
     const imageBounds = [[56.00, 92.80], [56.04, 92.94]];
 
@@ -158,10 +104,8 @@
     map.setMaxZoom(18);
 
     const markersMap = new Map();
-    let isAuthorized = false;
-    const CORRECT_PASSWORD = "zoo2026";
 
-    // ========== РАСШИРЕННЫЙ СПИСОК ИКОНОК ==========
+    // ========== ИКОНКИ ЖИВОТНЫХ ==========
     function getAnimalIcon(species) {
         const s = (species || "").toLowerCase();
         const mapIcons = {
@@ -205,52 +149,20 @@
             else if (s.includes("грызун") || s.includes("белк") || s.includes("заяц")) emoji = "🐭";
         }
         return L.divIcon({
-            html: `<div style="font-size: 28px; text-shadow: 0 0 3px white; cursor: ${isAuthorized ? 'grab' : 'default'}; text-align: center; filter: drop-shadow(2px 2px 2px rgba(0,0,0,0.3));">${emoji}</div>`,
+            html: `<div>${emoji}</div>`,
             iconSize: [32, 32],
             popupAnchor: [0, -12],
             className: 'animal-marker'
         });
     }
 
-    // ========== РАБОТА С МАРКЕРАМИ ==========
     function createPopupContent(animal) {
-        let html = `<div style="min-width:160px;">`;
-        if (animal.name) {
-            html += `<strong>🐕 ${escapeHtml(animal.name)}</strong><br>`;
-        }
+        let html = `<div style="min-width:140px;">`;
+        if (animal.name) html += `<strong>${escapeHtml(animal.name)}</strong><br>`;
         html += `<span>🧬 ${escapeHtml(animal.species)}</span>`;
-        if (animal.note) {
-            html += `<br><span style="font-size:13px; color:#555;">📝 ${escapeHtml(animal.note)}</span>`;
-        }
-        if (isAuthorized) {
-            html += `<br><button class="delete-animal-btn" data-id="${animal.id}" style="margin-top:8px; background:#c0392b; color:white; border:none; padding:4px 12px; border-radius:20px; cursor:pointer;">🗑 Удалить</button>`;
-        }
+        if (animal.note) html += `<br><span style="font-size:13px;color:#555;">📝 ${escapeHtml(animal.note)}</span>`;
         html += `</div>`;
         return html;
-    }
-
-    function updateOrCreateMarker(animal) {
-        const { id, name, species, lat, lng, note } = animal;
-        if (!id || lat === undefined || lng === undefined) return;
-        const icon = getAnimalIcon(species);
-        if (markersMap.has(id)) {
-            const marker = markersMap.get(id);
-            marker.setLatLng([lat, lng]);
-            marker.setPopupContent(createPopupContent(animal));
-            marker.setIcon(icon);
-            if (isAuthorized) marker.dragging.enable();
-            else marker.dragging.disable();
-            return;
-        }
-        const marker = L.marker([lat, lng], { draggable: isAuthorized, icon: icon }).addTo(map);
-        marker.bindPopup(createPopupContent(animal));
-        marker.on('dragend', function() {
-            if (!isAuthorized) return;
-            const newPos = marker.getLatLng();
-            animalsRef.child(id).update({ lat: newPos.lat, lng: newPos.lng });
-        });
-        marker.animalData = animal;
-        markersMap.set(id, marker);
     }
 
     function escapeHtml(str) {
@@ -263,46 +175,22 @@
         });
     }
 
-    function attachPopupEvents() {
-        document.querySelectorAll('.delete-animal-btn').forEach(btn => {
-            if (btn.dataset.listener) return;
-            btn.dataset.listener = 'true';
-            btn.addEventListener('click', function(e) {
-                e.stopPropagation();
-                if (!isAuthorized) return alert("Доступ только для сотрудников");
-                const id = this.dataset.id;
-                if (id && confirm('Убрать животное с карты?')) animalsRef.child(id).remove();
-            });
-        });
-    }
-
-    // ========== УПРАВЛЕНИЕ ДОСТУПАМИ ==========
-    function setAuthorization(authorized) {
-        isAuthorized = authorized;
-        const addBtn = document.getElementById('addAnimalBtn');
-        const statusDiv = document.getElementById('authStatus');
-        if (authorized) {
-            addBtn.style.display = 'block';
-            statusDiv.innerHTML = '✅ Сотрудник (полный доступ)';
-            statusDiv.className = 'status authorized';
-            markersMap.forEach(function(marker) {
-                marker.dragging.enable();
-                const species = marker.animalData?.species || '';
-                marker.setIcon(getAnimalIcon(species));
-                marker.setPopupContent(createPopupContent(marker.animalData || {}));
-            });
-        } else {
-            addBtn.style.display = 'none';
-            statusDiv.innerHTML = '👀 Только просмотр';
-            statusDiv.className = 'status';
-            markersMap.forEach(function(marker) {
-                marker.dragging.disable();
-                const species = marker.animalData?.species || '';
-                marker.setIcon(getAnimalIcon(species));
-                marker.setPopupContent(createPopupContent(marker.animalData || {}));
-            });
+    function updateOrCreateMarker(animal) {
+        const { id, name, species, lat, lng, note } = animal;
+        if (!id || lat === undefined || lng === undefined) return;
+        const icon = getAnimalIcon(species);
+        if (markersMap.has(id)) {
+            const marker = markersMap.get(id);
+            marker.setLatLng([lat, lng]);
+            marker.setPopupContent(createPopupContent(animal));
+            marker.setIcon(icon);
+            marker.dragging.disable();
+            return;
         }
-        setTimeout(attachPopupEvents, 100);
+        const marker = L.marker([lat, lng], { draggable: false, icon: icon }).addTo(map);
+        marker.bindPopup(createPopupContent(animal));
+        marker.animalData = animal;
+        markersMap.set(id, marker);
     }
 
     // ========== СЛУШАТЕЛИ FIREBASE ==========
@@ -310,14 +198,12 @@
         const animal = snapshot.val();
         animal.id = snapshot.key;
         updateOrCreateMarker(animal);
-        setTimeout(attachPopupEvents, 100);
     });
 
     animalsRef.on('child_changed', function(snapshot) {
         const animal = snapshot.val();
         animal.id = snapshot.key;
         updateOrCreateMarker(animal);
-        setTimeout(attachPopupEvents, 100);
     });
 
     animalsRef.on('child_removed', function(snapshot) {
@@ -328,87 +214,7 @@
         }
     });
 
-    // ========== АВТОРИЗАЦИЯ ==========
-    document.getElementById('loginBtn').onclick = function() {
-        const pwd = document.getElementById('passwordInput').value;
-        if (pwd === CORRECT_PASSWORD) {
-            setAuthorization(true);
-            document.getElementById('passwordInput').value = '';
-        } else {
-            alert('Неверный пароль');
-            setAuthorization(false);
-        }
-    };
-    setAuthorization(false); // начальное состояние
-
-    // ========== ДОБАВЛЕНИЕ ЖИВОТНОГО ==========
-    var modal = document.getElementById('animalModal');
-    var addBtn = document.getElementById('addAnimalBtn');
-    var closeModal = document.getElementById('closeModalBtn');
-    var saveBtn = document.getElementById('saveAnimalBtn');
-    var nameInput = document.getElementById('animalName');
-    var speciesInput = document.getElementById('animalSpecies');
-    var noteInput = document.getElementById('animalNote');
-
-    addBtn.onclick = function() {
-        if (isAuthorized) {
-            modal.style.display = 'flex';
-            nameInput.value = '';
-            speciesInput.value = '';
-            noteInput.value = '';
-        } else {
-            alert("Только для сотрудников");
-        }
-    };
-
-    closeModal.onclick = function() {
-        modal.style.display = 'none';
-    };
-
-    window.onclick = function(e) {
-        if (e.target === modal) modal.style.display = 'none';
-    };
-
-    saveBtn.onclick = function() {
-        console.log("Кнопка сохранения нажата");
-        if (!isAuthorized) {
-            alert("Нет прав");
-            return;
-        }
-        var name = nameInput.value.trim();
-        var species = speciesInput.value.trim();
-        var note = noteInput.value.trim();
-        console.log("Имя:", name, "Вид:", species, "Заметка:", note);
-        if (!species) {
-            alert("Пожалуйста, укажите вид животного");
-            return;
-        }
-        var center = map.getCenter();
-        var newAnimal = {
-            species: species,
-            lat: center.lat,
-            lng: center.lng,
-            createdAt: Date.now()
-        };
-        if (name) newAnimal.name = name;
-        if (note) newAnimal.note = note;
-        console.log("Отправка в Firebase:", newAnimal);
-        animalsRef.push(newAnimal)
-            .then(function() {
-                modal.style.display = 'none';
-                nameInput.value = '';
-                speciesInput.value = '';
-                noteInput.value = '';
-                console.log("Животное успешно добавлено");
-            })
-            .catch(function(err) {
-                alert("Ошибка добавления: " + err.message);
-                console.error("Ошибка Firebase:", err);
-            });
-    };
-
-    setInterval(attachPopupEvents, 1000);
-    console.log("Приложение запущено. Ожидание авторизации.");
+    console.log("Карта животных загружена (только просмотр)");
 </script>
 </body>
 </html>
