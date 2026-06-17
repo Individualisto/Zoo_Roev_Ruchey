@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-    <title>Карта животных – Роев ручей</title>
+    <title>Карта животных и инфраструктуры – Роев ручей</title>
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
@@ -36,7 +36,8 @@
             font-size: 14px;
             color: #1e466e;
         }
-        .animal-marker div {
+        /* Общий стиль для иконок с чёткой границей */
+        .animal-marker div, .building-marker div {
             font-size: 28px;
             text-shadow: 0 0 0 #fff, 0 0 0 #fff, 0 0 0 #fff, 0 0 0 #fff,
                          0 0 4px rgba(0,0,0,0.6), 0 0 4px rgba(0,0,0,0.6),
@@ -46,7 +47,7 @@
             filter: drop-shadow(0 2px 4px rgba(0,0,0,0.4));
             line-height: 1;
         }
-        .animal-marker {
+        .animal-marker, .building-marker {
             background: none !important;
             border: none !important;
         }
@@ -68,10 +69,9 @@
 <body>
 <div class="controls">
     <div class="left-controls">
-        <div class="info">🐘 Только просмотр животных</div>
+        <div class="info">🐘 Животные и 🏢 общественные здания</div>
         <div class="info">🔄 Данные в реальном времени</div>
         <a href="quest_map.html" class="nav-link">📍 Карта квестов</a>
-        <!-- Ссылка на общую карту УДАЛЕНА -->
     </div>
 </div>
 <div id="map"></div>
@@ -79,7 +79,7 @@
 <script>
     // ========== НАСТРОЙКИ FIREBASE ==========
     const firebaseConfig = {
-        apiKey: "AIzaSyDummyExample_DoNotCopy",
+        apiKey: "AIzaSyDummyExample_DoNotCopy",   // замените на свои
         authDomain: "zoo-map-realtime.firebaseapp.com",
         databaseURL: "https://zoo-map-realtime-default-rtdb.firebaseio.com",
         projectId: "zoo-map-realtime",
@@ -91,6 +91,7 @@
     firebase.initializeApp(firebaseConfig);
     const db = firebase.database();
     const animalsRef = db.ref('animals');
+    const buildingsRef = db.ref('buildings'); // узел для зданий
 
     // ========== КАРТА ==========
     const zooMapImageUrl = 'zoo_map.png';
@@ -103,6 +104,7 @@
     map.setMinZoom(14);
     map.setMaxZoom(18);
 
+    // Хранилище маркеров: ключ – 'animal_ид' или 'building_ид'
     const markersMap = new Map();
 
     // ========== ИКОНКИ ЖИВОТНЫХ ==========
@@ -156,11 +158,44 @@
         });
     }
 
-    function createPopupContent(animal) {
+    // ========== ИКОНКИ ЗДАНИЙ (в зависимости от названия/типа) ==========
+    function getBuildingIcon(name, type) {
+        const n = (name || "").toLowerCase();
+        const t = (type || "").toLowerCase();
+        let emoji = "🏢";
+        if (n.includes("медпункт") || n.includes("мед") || n.includes("здрав")) emoji = "🏥";
+        else if (n.includes("вет") || n.includes("клин")) emoji = "💉";
+        else if (n.includes("ребен") || n.includes("дет") || n.includes("матери")) emoji = "👶";
+        else if (n.includes("вход") || n.includes("касс") || n.includes("турникет")) emoji = "🚪";
+        else if (n.includes("кафе") || n.includes("столовая") || n.includes("буфет")) emoji = "☕";
+        else if (n.includes("туалет") || n.includes("wc") || n.includes("санузел")) emoji = "🚻";
+        else if (n.includes("парков") || n.includes("автостоянк")) emoji = "🅿️";
+        else if (n.includes("магазин") || n.includes("сувенир") || n.includes("киоск")) emoji = "🛍️";
+        else if (t.includes("public") || t.includes("общественное")) emoji = "🏢";
+        else emoji = "🏢";
+        return L.divIcon({
+            html: `<div>${emoji}</div>`,
+            iconSize: [32, 32],
+            popupAnchor: [0, -12],
+            className: 'building-marker'
+        });
+    }
+
+    // ========== ФУНКЦИИ ДЛЯ ПОПАПОВ ==========
+    function createAnimalPopup(animal) {
         let html = `<div style="min-width:140px;">`;
         if (animal.name) html += `<strong>${escapeHtml(animal.name)}</strong><br>`;
         html += `<span>🧬 ${escapeHtml(animal.species)}</span>`;
         if (animal.note) html += `<br><span style="font-size:13px;color:#555;">📝 ${escapeHtml(animal.note)}</span>`;
+        html += `</div>`;
+        return html;
+    }
+
+    function createBuildingPopup(building) {
+        let html = `<div style="min-width:140px;">`;
+        if (building.name) html += `<strong>🏢 ${escapeHtml(building.name)}</strong><br>`;
+        if (building.type) html += `<span>🏷️ ${escapeHtml(building.type)}</span>`;
+        if (building.description) html += `<br><span style="font-size:13px;color:#555;">📝 ${escapeHtml(building.description)}</span>`;
         html += `</div>`;
         return html;
     }
@@ -175,46 +210,82 @@
         });
     }
 
-    function updateOrCreateMarker(animal) {
-        const { id, name, species, lat, lng, note } = animal;
+    // ========== УНИВЕРСАЛЬНОЕ ОБНОВЛЕНИЕ МАРКЕРОВ ==========
+    function updateOrCreateMarker(data, type, ref) {
+        const { id, lat, lng } = data;
         if (!id || lat === undefined || lng === undefined) return;
-        const icon = getAnimalIcon(species);
-        if (markersMap.has(id)) {
-            const marker = markersMap.get(id);
+        const key = type + '_' + id;
+
+        let icon, popupContent;
+        if (type === 'animal') {
+            icon = getAnimalIcon(data.species);
+            popupContent = createAnimalPopup(data);
+        } else if (type === 'building') {
+            // Показываем только общественные здания (category === 'public' или если категория не задана, считаем общественным)
+            if (data.category && data.category !== 'public') return; // не показываем технические
+            icon = getBuildingIcon(data.name, data.type);
+            popupContent = createBuildingPopup(data);
+        } else {
+            return;
+        }
+
+        if (markersMap.has(key)) {
+            const marker = markersMap.get(key);
             marker.setLatLng([lat, lng]);
-            marker.setPopupContent(createPopupContent(animal));
+            marker.setPopupContent(popupContent);
             marker.setIcon(icon);
             marker.dragging.disable();
             return;
         }
         const marker = L.marker([lat, lng], { draggable: false, icon: icon }).addTo(map);
-        marker.bindPopup(createPopupContent(animal));
-        marker.animalData = animal;
-        markersMap.set(id, marker);
+        marker.bindPopup(popupContent);
+        marker.data = data;
+        markersMap.set(key, marker);
     }
 
     // ========== СЛУШАТЕЛИ FIREBASE ==========
+    // Животные
     animalsRef.on('child_added', function(snapshot) {
-        const animal = snapshot.val();
-        animal.id = snapshot.key;
-        updateOrCreateMarker(animal);
+        const data = snapshot.val();
+        data.id = snapshot.key;
+        updateOrCreateMarker(data, 'animal', animalsRef);
     });
-
     animalsRef.on('child_changed', function(snapshot) {
-        const animal = snapshot.val();
-        animal.id = snapshot.key;
-        updateOrCreateMarker(animal);
+        const data = snapshot.val();
+        data.id = snapshot.key;
+        updateOrCreateMarker(data, 'animal', animalsRef);
     });
-
     animalsRef.on('child_removed', function(snapshot) {
         const id = snapshot.key;
-        if (markersMap.has(id)) {
-            map.removeLayer(markersMap.get(id));
-            markersMap.delete(id);
+        const key = 'animal_' + id;
+        if (markersMap.has(key)) {
+            map.removeLayer(markersMap.get(key));
+            markersMap.delete(key);
         }
     });
 
-    console.log("Карта животных загружена (только просмотр)");
+    // Здания (только общественные)
+    buildingsRef.on('child_added', function(snapshot) {
+        const data = snapshot.val();
+        data.id = snapshot.key;
+        // Проверка категории выполняется внутри updateOrCreateMarker
+        updateOrCreateMarker(data, 'building', buildingsRef);
+    });
+    buildingsRef.on('child_changed', function(snapshot) {
+        const data = snapshot.val();
+        data.id = snapshot.key;
+        updateOrCreateMarker(data, 'building', buildingsRef);
+    });
+    buildingsRef.on('child_removed', function(snapshot) {
+        const id = snapshot.key;
+        const key = 'building_' + id;
+        if (markersMap.has(key)) {
+            map.removeLayer(markersMap.get(key));
+            markersMap.delete(key);
+        }
+    });
+
+    console.log("Карта животных и общественных зданий загружена (только просмотр)");
 </script>
 </body>
 </html>
