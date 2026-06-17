@@ -147,8 +147,8 @@
     L.imageOverlay(zooMapImageUrl, imageBounds, { opacity: 1, interactive: false }).addTo(map);
     map.fitBounds(imageBounds);
     map.setMaxBounds(imageBounds);
-  //  map.setMinZoom(14);
-   // map.setMaxZoom(18);
+    map.setMinZoom(14);
+    map.setMaxZoom(18);
 
     const markersMap = new Map();
     let isAuthorized = false;
