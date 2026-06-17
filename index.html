@@ -123,7 +123,6 @@
             <option>Жираф</option><option>Пингвин</option><option>Медведь</option>
             <option>Обезьяна</option><option>Зебра</option><option>Волк</option>
             <option>Лиса</option><option>Крокодил</option><option>Фламинго</option>
-            <!-- можно добавить больше из списка -->
         </datalist>
         <textarea id="animalNote" placeholder="Краткая информация (необязательно)"></textarea>
         <button id="saveAnimalBtn">✨ Создать на карте</button>
@@ -134,7 +133,7 @@
 <script>
     // ========== НАСТРОЙКИ FIREBASE (ЗАМЕНИТЕ НА СВОИ) ==========
     const firebaseConfig = {
-        apiKey: "AIzaSyDummyExample_DoNotCopy",      // вставьте свой apiKey
+        apiKey: "AIzaSyDummyExample_DoNotCopy",
         authDomain: "zoo-map-realtime.firebaseapp.com",
         databaseURL: "https://zoo-map-realtime-default-rtdb.firebaseio.com",
         projectId: "zoo-map-realtime",
@@ -148,8 +147,8 @@
     const animalsRef = db.ref('animals');
 
     // ========== КАРТА СО СХЕМОЙ ==========
-    const zooMapImageUrl = 'zoo_map.png';   // ← ваша схема
-    const imageBounds = [[56.00, 92.80], [56.04, 92.94]]; // границы
+    const zooMapImageUrl = 'zoo_map.png';
+    const imageBounds = [[56.00, 92.80], [56.04, 92.94]];
 
     const map = L.map('map').setView([56.02, 92.87], 15);
     L.imageOverlay(zooMapImageUrl, imageBounds, { opacity: 1, interactive: false }).addTo(map);
@@ -160,14 +159,12 @@
 
     const markersMap = new Map();
     let isAuthorized = false;
-    const CORRECT_PASSWORD = "zoo2026";   // ← пароль сотрудника
+    const CORRECT_PASSWORD = "zoo2026";
 
     // ========== РАСШИРЕННЫЙ СПИСОК ИКОНОК ==========
     function getAnimalIcon(species) {
         const s = (species || "").toLowerCase();
-        // Полный словарь на основе вашего списка (ключи – части названий, значения – эмодзи)
         const mapIcons = {
-            // Копытные
             "зубр": "🦬", "верблюд": "🐪", "муфлон": "🐏", "косуля": "🦌",
             "винторогий козел": "🐐", "горный козел": "🐐", "пятнистый олень": "🦌",
             "марал": "🦌", "овцебык": "🦬", "лось": "🦌", "гуанако": "🦙",
@@ -175,14 +172,11 @@
             "мини-лошадь": "🐴", "голубой баран": "🐏", "тапир": "🐗", "пекари": "🐗",
             "гну": "🐃", "орикс": "🐐", "зебра": "🦓", "жираф": "🦒", "осёл": "🐴",
             "овца": "🐑", "валлийская овца": "🐑",
-            // Грызуны и зайцеобразные
             "дикобраз": "🦔", "пака": "🐭", "мара": "🐰", "заяц": "🐇",
             "белка": "🐿️", "белка-летяга": "🐿️", "белка превоста": "🐿️",
-            // Приматы
             "лемур": "🐒", "потто": "🐒", "галаго": "🐒", "игрунка": "🐒",
             "тамарин": "🐒", "саймири": "🐒", "капуцин": "🐒", "мангобей": "🐒",
             "колобус": "🐒", "гиббон": "🐒", "шимпанзе": "🐒",
-            // Хищники (собаки, кошки, медведи и пр.)
             "хаски": "🐕", "самоедская собака": "🐕", "енотовидная собака": "🦝",
             "лесной хорек": "🦡", "носуха": "🦝", "скунс": "🦨", "енот": "🦝",
             "мангуст": "🦡", "генетта": "🐱", "сурикат": "🦡", "фенек": "🦊",
@@ -193,14 +187,12 @@
             "кот бенгальский": "🐱", "кот дальневосточный": "🐱", "леопард": "🐆",
             "пума": "🐆", "тигр": "🐅", "ягуар": "🐆", "лев": "🦁",
             "манул": "🐱", "камышовый кот": "🐱", "лиса": "🦊",
-            // Сумчатые и прочие
             "валлаби": "🦘", "даман": "🐭", "ёж": "🦔"
         };
         let emoji = "🐾";
         for (let [kw, e] of Object.entries(mapIcons)) {
             if (s.includes(kw)) { emoji = e; break; }
         }
-        // Если не нашлось – пробуем по общим группам
         if (emoji === "🐾") {
             if (s.includes("олень") || s.includes("лось")) emoji = "🦌";
             else if (s.includes("коз") || s.includes("баран") || s.includes("овц")) emoji = "🐐";
@@ -257,8 +249,7 @@
             const newPos = marker.getLatLng();
             animalsRef.child(id).update({ lat: newPos.lat, lng: newPos.lng });
         });
-        // сохраняем данные животного для обновления попапа
-        marker.animalData = animal;
+        marker.animalData = animal;   // сохраняем данные
         markersMap.set(id, marker);
     }
 
@@ -285,7 +276,7 @@
         });
     }
 
-    // ========== УПРАВЛЕНИЕ ДОСТУПАМИ ==========
+    // ========== УПРАВЛЕНИЕ ДОСТУПАМИ (ИСПРАВЛЕНО) ==========
     function setAuthorization(authorized) {
         isAuthorized = authorized;
         const addBtn = document.getElementById('addAnimalBtn');
@@ -296,10 +287,9 @@
             statusDiv.className = 'status authorized';
             markersMap.forEach(marker => {
                 marker.dragging.enable();
-                // обновляем иконку (чтобы курсор стал grab)
-                const oldIcon = marker.options.icon;
-                const emoji = oldIcon.options.html.match(/<div>(.*?)<\/div>/)?.[1] || '🐾';
-                marker.setIcon(getAnimalIcon(emoji));
+                // Используем сохранённый вид животного
+                const species = marker.animalData?.species || '';
+                marker.setIcon(getAnimalIcon(species));
                 marker.setPopupContent(createPopupContent(marker.animalData || {}));
             });
         } else {
@@ -308,9 +298,8 @@
             statusDiv.className = 'status';
             markersMap.forEach(marker => {
                 marker.dragging.disable();
-                const oldIcon = marker.options.icon;
-                const emoji = oldIcon.options.html.match(/<div>(.*?)<\/div>/)?.[1] || '🐾';
-                marker.setIcon(getAnimalIcon(emoji));
+                const species = marker.animalData?.species || '';
+                marker.setIcon(getAnimalIcon(species));
                 marker.setPopupContent(createPopupContent(marker.animalData || {}));
             });
         }
@@ -351,7 +340,7 @@
     };
     setAuthorization(false); // начальное состояние
 
-    // ========== ДОБАВЛЕНИЕ ЖИВОТНОГО ==========
+    // ========== ДОБАВЛЕНИЕ ЖИВОТНОГО (ИСПРАВЛЕНО) ==========
     const modal = document.getElementById('animalModal');
     const addBtn = document.getElementById('addAnimalBtn');
     const closeModal = document.getElementById('closeModalBtn');
@@ -363,7 +352,6 @@
     addBtn.onclick = () => {
         if (isAuthorized) {
             modal.style.display = 'flex';
-            // очищаем поля
             nameInput.value = '';
             speciesInput.value = '';
             noteInput.value = '';
@@ -383,7 +371,7 @@
         }
         const center = map.getCenter();
         const newAnimal = {
-            name: name || undefined,  // если пусто – сохраняем undefined (не будет отображаться)
+            name: name || undefined,
             species: species,
             note: note || undefined,
             lat: center.lat,
