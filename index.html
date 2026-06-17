@@ -58,15 +58,21 @@
             background: white;
             padding: 24px;
             border-radius: 24px;
-            width: 300px;
+            width: 350px;
+            max-width: 95%;
             box-shadow: 0 8px 20px rgba(0,0,0,0.2);
         }
-        .modal-card input, .modal-card select {
+        .modal-card input, .modal-card select, .modal-card textarea {
             width: 100%;
-            margin: 12px 0;
+            margin: 8px 0;
             padding: 8px;
             border-radius: 12px;
             border: 1px solid #ccc;
+            font-family: inherit;
+        }
+        .modal-card textarea {
+            resize: vertical;
+            min-height: 60px;
         }
         .modal-card button {
             width: 100%;
@@ -104,8 +110,6 @@
 <div id="animalModal" class="modal">
     <div class="modal-card">
         <h3>Новый обитатель</h3>
-        <textarea id="animalNote" placeholder="Краткая информация (необязательно)"></textarea>
-        <input type="text" id="animalName" list="nameOptions" placeholder="Имя животного" autocomplete="off">
         <input type="text" id="animalName" list="nameOptions" placeholder="Имя (необязательно)" autocomplete="off">
         <datalist id="nameOptions">
             <option>Бонифаций</option><option>Марфа</option><option>Гоша</option>
@@ -113,13 +117,15 @@
             <option>Рокки</option><option>Люся</option><option>Зевс</option>
             <option>Ариэль</option><option>Тиша</option><option>Найда</option>
         </datalist>
-        <input type="text" id="animalSpecies" list="speciesOptions" placeholder="Вид животного" autocomplete="off">
+        <input type="text" id="animalSpecies" list="speciesOptions" placeholder="Вид животного *" autocomplete="off" required>
         <datalist id="speciesOptions">
             <option>Лев</option><option>Тигр</option><option>Слон</option>
             <option>Жираф</option><option>Пингвин</option><option>Медведь</option>
             <option>Обезьяна</option><option>Зебра</option><option>Волк</option>
             <option>Лиса</option><option>Крокодил</option><option>Фламинго</option>
+            <!-- можно добавить больше из списка -->
         </datalist>
+        <textarea id="animalNote" placeholder="Краткая информация (необязательно)"></textarea>
         <button id="saveAnimalBtn">✨ Создать на карте</button>
         <button id="closeModalBtn" style="background:#aaa;">Отмена</button>
     </div>
@@ -149,63 +155,63 @@
     L.imageOverlay(zooMapImageUrl, imageBounds, { opacity: 1, interactive: false }).addTo(map);
     map.fitBounds(imageBounds);
     map.setMaxBounds(imageBounds);
-    //map.setMinZoom(14);
-    //map.setMaxZoom(18);
+    map.setMinZoom(14);
+    map.setMaxZoom(18);
 
     const markersMap = new Map();
     let isAuthorized = false;
-    const CORRECT_PASSWORD = "zoo2026";   // ← пароль сотрудника (смените при желании)
+    const CORRECT_PASSWORD = "zoo2026";   // ← пароль сотрудника
 
-function getAnimalIcon(species) {
-    const s = (species || "").toLowerCase();
-    const mapIcons = {
-        "зубр": "🦬", "верблюд": "🐪", "муфлон": "🐏", "косуля": "🦌",
-        "винторогий козел": "🐐", "горный козел": "🐐", "пятнистый олень": "🦌",
-        "марал": "🦌", "овцебык": "🦬", "лось": "🦌", "гуанако": "🦙",
-        "альпака": "🦙", "северный олень": "🦌", "коза": "🐐", "пони": "🐴",
-        "мини-лошадь": "🐴", "голубой баран": "🐏", "тапир": "🐗", "пекари": "🐗",
-        "гну": "🐃", "орикс": "🐐", "зебра": "🦓", "жираф": "🦒", "осёл": "🐴",
-        "овца": "🐑", "валлийская овца": "🐑",
-        "дикобраз": "🦔", "пака": "🐭", "мара": "🐰", "заяц": "🐇",
-        "белка": "🐿️", "белка-летяга": "🐿️", "белка превоста": "🐿️",
-        "лемур": "🐒", "потто": "🐒", "галаго": "🐒", "игрунка": "🐒",
-        "тамарин": "🐒", "саймири": "🐒", "капуцин": "🐒", "мангобей": "🐒",
-        "колобус": "🐒", "гиббон": "🐒", "шимпанзе": "🐒",
-        "хаски": "🐕", "самоед": "🐕", "енотовидная собака": "🦝",
-        "лесной хорек": "🦡", "носуха": "🦝", "скунс": "🦨", "енот": "🦝",
-        "мангуст": "🦡", "генетта": "🐱", "сурикат": "🦡", "фенек": "🦊",
-        "волк": "🐺", "белый медведь": "🐻‍❄️", "бурый медведь": "🐻",
-        "медведь бурый тяньшанский": "🐻", "медведь гималайский": "🐻",
-        "харза": "🦡", "соболь": "🦡", "барсук": "🦡", "выдра": "🦦",
-        "рысь": "🐱", "рысь рыжая": "🐱", "сервал": "🐱", "кот": "🐱",
-        "кот бенгальский": "🐱", "кот дальневосточный": "🐱", "леопард": "🐆",
-        "пума": "🐆", "тигр": "🐅", "ягуар": "🐆", "лев": "🦁",
-        "манул": "🐱", "камышовый кот": "🐱", "лиса": "🦊",
-        "кенгуру": "🦘", "даман": "🐭", "ёж": "🦔"
-    };
-    let emoji = "🐾";
-    for (let [kw, e] of Object.entries(mapIcons)) {
-        if (s.includes(kw)) { emoji = e; break; }
-    }
-    if (emoji === "🐾") {
-        if (s.includes("олень") || s.includes("лось")) emoji = "🦌";
-        else if (s.includes("коз") || s.includes("баран") || s.includes("овц")) emoji = "🐐";
-        else if (s.includes("лошад") || s.includes("пони")) emoji = "🐴";
-        else if (s.includes("медвед")) emoji = "🐻";
-        else if (s.includes("обезьян") || s.includes("примат")) emoji = "🐒";
-        else if (s.includes("собак") || s.includes("волк")) emoji = "🐺";
-        else if (s.includes("лис")) emoji = "🦊";
-        else if (s.includes("кот") || s.includes("кошк")) emoji = "🐱";
-        else if (s.includes("грызун") || s.includes("белк") || s.includes("заяц")) emoji = "🐭";
-    }
-    return L.divIcon({
-        html: `<div style="font-size: 28px; text-shadow: 0 0 3px white; cursor: ${isAuthorized ? 'grab' : 'default'}; text-align: center; filter: drop-shadow(2px 2px 2px rgba(0,0,0,0.3));">${emoji}</div>`,
-        iconSize: [32, 32],
-        popupAnchor: [0, -12],
-        className: 'animal-marker'
-    });
-}
-
+    // ========== РАСШИРЕННЫЙ СПИСОК ИКОНОК ==========
+    function getAnimalIcon(species) {
+        const s = (species || "").toLowerCase();
+        // Полный словарь на основе вашего списка (ключи – части названий, значения – эмодзи)
+        const mapIcons = {
+            // Копытные
+            "зубр": "🦬", "верблюд": "🐪", "муфлон": "🐏", "косуля": "🦌",
+            "винторогий козел": "🐐", "горный козел": "🐐", "пятнистый олень": "🦌",
+            "марал": "🦌", "овцебык": "🦬", "лось": "🦌", "гуанако": "🦙",
+            "альпака": "🦙", "северный олень": "🦌", "коза": "🐐", "пони": "🐴",
+            "мини-лошадь": "🐴", "голубой баран": "🐏", "тапир": "🐗", "пекари": "🐗",
+            "гну": "🐃", "орикс": "🐐", "зебра": "🦓", "жираф": "🦒", "осёл": "🐴",
+            "овца": "🐑", "валлийская овца": "🐑",
+            // Грызуны и зайцеобразные
+            "дикобраз": "🦔", "пака": "🐭", "мара": "🐰", "заяц": "🐇",
+            "белка": "🐿️", "белка-летяга": "🐿️", "белка превоста": "🐿️",
+            // Приматы
+            "лемур": "🐒", "потто": "🐒", "галаго": "🐒", "игрунка": "🐒",
+            "тамарин": "🐒", "саймири": "🐒", "капуцин": "🐒", "мангобей": "🐒",
+            "колобус": "🐒", "гиббон": "🐒", "шимпанзе": "🐒",
+            // Хищники (собаки, кошки, медведи и пр.)
+            "хаски": "🐕", "самоедская собака": "🐕", "енотовидная собака": "🦝",
+            "лесной хорек": "🦡", "носуха": "🦝", "скунс": "🦨", "енот": "🦝",
+            "мангуст": "🦡", "генетта": "🐱", "сурикат": "🦡", "фенек": "🦊",
+            "волк": "🐺", "белый медведь": "🐻‍❄️", "бурый медведь": "🐻",
+            "медведь бурый тяньшанский": "🐻", "медведь гималайский": "🐻",
+            "харза": "🦡", "соболь": "🦡", "барсук": "🦡", "выдра": "🦦",
+            "рысь": "🐱", "рысь рыжая": "🐱", "сервал": "🐱", "кот": "🐱",
+            "кот бенгальский": "🐱", "кот дальневосточный": "🐱", "леопард": "🐆",
+            "пума": "🐆", "тигр": "🐅", "ягуар": "🐆", "лев": "🦁",
+            "манул": "🐱", "камышовый кот": "🐱", "лиса": "🦊",
+            // Сумчатые и прочие
+            "валлаби": "🦘", "даман": "🐭", "ёж": "🦔"
+        };
+        let emoji = "🐾";
+        for (let [kw, e] of Object.entries(mapIcons)) {
+            if (s.includes(kw)) { emoji = e; break; }
+        }
+        // Если не нашлось – пробуем по общим группам
+        if (emoji === "🐾") {
+            if (s.includes("олень") || s.includes("лось")) emoji = "🦌";
+            else if (s.includes("коз") || s.includes("баран") || s.includes("овц")) emoji = "🐐";
+            else if (s.includes("лошад") || s.includes("пони")) emoji = "🐴";
+            else if (s.includes("медвед")) emoji = "🐻";
+            else if (s.includes("обезьян") || s.includes("примат")) emoji = "🐒";
+            else if (s.includes("собак") || s.includes("волк")) emoji = "🐺";
+            else if (s.includes("лис")) emoji = "🦊";
+            else if (s.includes("кот") || s.includes("кошк")) emoji = "🐱";
+            else if (s.includes("грызун") || s.includes("белк") || s.includes("заяц")) emoji = "🐭";
+        }
         return L.divIcon({
             html: `<div style="font-size: 28px; text-shadow: 0 0 3px white; cursor: ${isAuthorized ? 'grab' : 'default'}; text-align: center; filter: drop-shadow(2px 2px 2px rgba(0,0,0,0.3));">${emoji}</div>`,
             iconSize: [32, 32],
@@ -214,46 +220,35 @@ function getAnimalIcon(species) {
         });
     }
 
-    // ========== РАБОТА С МАРКЕРАМИ (с учётом авторизации) ==========
-function createPopupContent(animal) {
-    let html = `<div style="min-width:160px;">`;
-    if (animal.name) {
-        html += `<strong>🐕 ${escapeHtml(animal.name)}</strong><br>`;
+    // ========== РАБОТА С МАРКЕРАМИ ==========
+    function createPopupContent(animal) {
+        let html = `<div style="min-width:160px;">`;
+        if (animal.name) {
+            html += `<strong>🐕 ${escapeHtml(animal.name)}</strong><br>`;
+        }
+        html += `<span>🧬 ${escapeHtml(animal.species)}</span>`;
+        if (animal.note) {
+            html += `<br><span style="font-size:13px; color:#555;">📝 ${escapeHtml(animal.note)}</span>`;
+        }
+        if (isAuthorized) {
+            html += `<br><button class="delete-animal-btn" data-id="${animal.id}" style="margin-top:8px; background:#c0392b; color:white; border:none; padding:4px 12px; border-radius:20px; cursor:pointer;">🗑 Удалить</button>`;
+        }
+        html += `</div>`;
+        return html;
     }
-    html += `<span>🧬 ${escapeHtml(animal.species)}</span>`;
-    if (animal.note) {
-        html += `<br><span style="font-size:13px; color:#555;">📝 ${escapeHtml(animal.note)}</span>`;
-    }
-    if (isAuthorized) {
-        html += `<br><button class="delete-animal-btn" data-id="${animal.id}" style="margin-top:8px; background:#c0392b; color:white; border:none; padding:4px 12px; border-radius:20px; cursor:pointer;">🗑 Удалить</button>`;
-    }
-    html += `</div>`;
-    return html;
-}
 
-function updateOrCreateMarker(animal) {
-    const { id, name, species, lat, lng, note } = animal;
-    if (!id || lat === undefined || lng === undefined) return;
-    const icon = getAnimalIcon(species);
-    if (markersMap.has(id)) {
-        const marker = markersMap.get(id);
-        marker.setLatLng([lat, lng]);
-        marker.setPopupContent(createPopupContent(animal));
-        marker.setIcon(icon);
-        if (isAuthorized) marker.dragging.enable();
-        else marker.dragging.disable();
-        return;
-    }
-    const marker = L.marker([lat, lng], { draggable: isAuthorized, icon: icon }).addTo(map);
-    marker.bindPopup(createPopupContent(animal));
-    marker.on('dragend', function() {
-        if (!isAuthorized) return;
-        const newPos = marker.getLatLng();
-        animalsRef.child(id).update({ lat: newPos.lat, lng: newPos.lng });
-    });
-    marker.animalData = animal;   // <-- добавлено
-    markersMap.set(id, marker);
-}
+    function updateOrCreateMarker(animal) {
+        const { id, name, species, lat, lng, note } = animal;
+        if (!id || lat === undefined || lng === undefined) return;
+        const icon = getAnimalIcon(species);
+        if (markersMap.has(id)) {
+            const marker = markersMap.get(id);
+            marker.setLatLng([lat, lng]);
+            marker.setPopupContent(createPopupContent(animal));
+            marker.setIcon(icon);
+            if (isAuthorized) marker.dragging.enable();
+            else marker.dragging.disable();
+            return;
         }
         const marker = L.marker([lat, lng], { draggable: isAuthorized, icon: icon }).addTo(map);
         marker.bindPopup(createPopupContent(animal));
@@ -262,10 +257,13 @@ function updateOrCreateMarker(animal) {
             const newPos = marker.getLatLng();
             animalsRef.child(id).update({ lat: newPos.lat, lng: newPos.lng });
         });
+        // сохраняем данные животного для обновления попапа
+        marker.animalData = animal;
         markersMap.set(id, marker);
     }
 
     function escapeHtml(str) {
+        if (!str) return '';
         return String(str).replace(/[&<>]/g, function(m){
             if (m === '&') return '&amp;';
             if (m === '<') return '&lt;';
@@ -351,50 +349,58 @@ function updateOrCreateMarker(animal) {
             setAuthorization(false);
         }
     };
-    // Начальное состояние – только просмотр
-    setAuthorization(false);
+    setAuthorization(false); // начальное состояние
 
     // ========== ДОБАВЛЕНИЕ ЖИВОТНОГО ==========
     const modal = document.getElementById('animalModal');
     const addBtn = document.getElementById('addAnimalBtn');
     const closeModal = document.getElementById('closeModalBtn');
     const saveBtn = document.getElementById('saveAnimalBtn');
+    const nameInput = document.getElementById('animalName');
+    const speciesInput = document.getElementById('animalSpecies');
+    const noteInput = document.getElementById('animalNote');
 
     addBtn.onclick = () => {
-        if (isAuthorized) modal.style.display = 'flex';
-        else alert("Только для сотрудников");
+        if (isAuthorized) {
+            modal.style.display = 'flex';
+            // очищаем поля
+            nameInput.value = '';
+            speciesInput.value = '';
+            noteInput.value = '';
+        } else alert("Только для сотрудников");
     };
     closeModal.onclick = () => { modal.style.display = 'none'; };
     window.onclick = (e) => { if (e.target === modal) modal.style.display = 'none'; };
-    saveBtn.onclick = () => {
-    if (!isAuthorized) return alert("Нет прав");
-    const name = document.getElementById('animalName').value.trim();
-    const species = document.getElementById('animalSpecies').value.trim();
-    const note = document.getElementById('animalNote').value.trim();
-    if (!species) {
-        alert("Пожалуйста, укажите вид животного");
-        return;
-    }
-    const center = map.getCenter();
-    const newAnimal = {
-        name: name || undefined,
-        species: species,
-        note: note || undefined,
-        lat: center.lat,
-        lng: center.lng,
-        createdAt: Date.now()
-    };
-    animalsRef.push(newAnimal)
-        .then(() => {
-            modal.style.display = 'none';
-            document.getElementById('animalName').value = '';
-            document.getElementById('animalSpecies').value = '';
-            document.getElementById('animalNote').value = '';
-        })
-        .catch(err => alert("Ошибка добавления: " + err.message));
-};
 
-    // Периодическое обновление кнопок удаления (на случай динамических попапов)
+    saveBtn.onclick = () => {
+        if (!isAuthorized) return alert("Нет прав");
+        const name = nameInput.value.trim();
+        const species = speciesInput.value.trim();
+        const note = noteInput.value.trim();
+        if (!species) {
+            alert("Пожалуйста, укажите вид животного");
+            return;
+        }
+        const center = map.getCenter();
+        const newAnimal = {
+            name: name || undefined,  // если пусто – сохраняем undefined (не будет отображаться)
+            species: species,
+            note: note || undefined,
+            lat: center.lat,
+            lng: center.lng,
+            createdAt: Date.now()
+        };
+        animalsRef.push(newAnimal)
+            .then(() => {
+                modal.style.display = 'none';
+                nameInput.value = '';
+                speciesInput.value = '';
+                noteInput.value = '';
+            })
+            .catch(err => alert("Ошибка добавления: " + err.message));
+    };
+
+    // Периодическое обновление кнопок удаления
     setInterval(() => attachPopupEvents(), 1000);
     console.log("Приложение запущено. Ожидание авторизации.");
 </script>
