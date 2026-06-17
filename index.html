@@ -109,13 +109,26 @@
     const animalsRef = db.ref('animals');   // коллекция всех маркеров
 
     // ========== ИНИЦИАЛИЗАЦИЯ КАРТЫ (OpenStreetMap) ==========
-    const map = L.map('map').setView([55.9661, 92.7319], 17); // Роев Ручей (координаты))
-    const markersMap = new Map();   // хранилище активных маркеров
- L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', {
-    attribution: 'Tiles &copy; Esri &mdash; Source: Esri, i-cubed, USDA, USGS, AEX, GeoEye, Getmapping, Aerogrid, IGN, IGP, UPR-EGP, and the GIS User Community',
-    maxZoom: 18
+// Временно используем пустую белую заглушку (позже замените на реальную схему зоопарка)
+const zooMapImageUrl = 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAQAAAAEAAQMAAABmvDolAAAAA1BMVEX///+nxBvIAAAAAXRSTlMAQObYZgAAABpJREFUeJztwQEBAAAAgiD/r25IQAEAAAAAAAAA8GZcAAABbSrQ4AAAAABJRU5ErkJggg==';
+// Задайте границы вашей схемы (левая нижняя и правая верхняя точки в условных координатах)
+// Чтобы схема занимала весь экран, просто задайте достаточно большие значения.
+// Важно: все существующие маркеры имеют реальные координаты (широта/долгота),
+// поэтому мы искусственно зададим границы так, чтобы они попали внутрь.
+const imageBounds = [[56.00, 92.80], [56.04, 92.94]]; // примерная зона "Роев ручей"
+
+const map = L.map('map').setView([56.02, 92.87], 15);
+const markersMap = new Map();
+
+L.imageOverlay(zooMapImageUrl, imageBounds, {
+    opacity: 1,
+    interactive: false
 }).addTo(map);
 
+// Опционально: ограничить масштабирование, чтобы схема не уходила слишком далеко
+map.setMaxBounds(imageBounds);
+map.setMinZoom(14);
+map.setMaxZoom(18);
     // ========== ВСПОМОГАТЕЛЬНЫЕ ФУНКЦИИ ==========
     // Генерация иконки животного (разные цвета / эмодзи по виду – для наглядности)
     function getAnimalIcon(species) {
